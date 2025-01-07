@@ -641,6 +641,7 @@ uvicorn[standard]==0.34.0 \
     --hash=sha256:023dc038422502fa28a09c7a30bf2b6991512da7dcdb8fd35fe57cfc154126f4 \
     --hash=sha256:404051050cd7e905de2c9a7e61790943440b3416f49cb409f965d9dcd0fa73e9
     # via
+    #   -r requirements.in
     #   fastapi
     #   fastapi-cli
 uvloop==0.21.0 \

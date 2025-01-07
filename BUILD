@@ -12,6 +12,12 @@ py_console_script_binary(
         "@multiplayer-game//game_assets",
         "@multiplayer-game//lib",
         "@pypi//pygame",
+        "@pypi//pydantic",
+        "@pypi//requests",
+
+        # Not sure if this is needed, may put server in exe, may not.
+        # fastapi-cli may also be needed too.
+        "@pypi//fastapi",
     ],
 )
 
@@ -50,12 +56,9 @@ py_console_script_binary(
     pkg = "@pypi//fastapi",
     visibility = ["//visibility:public"],
     deps = [
-        # This needs to have the dependencies needed by pyinstaller available
-        # in order for the dependencies to be included!
         "@multiplayer-game//game_assets",
-        "@multiplayer-game//server:lib",
         "@multiplayer-game//lib",
-        "@pypi//pygame",
+        "@multiplayer-game//server:lib",
     ],
 )
 

@@ -4,5 +4,7 @@ py_library(
     name = "lib",
     srcs = glob(["**/*.py"]),
     visibility = ["//:__subpackages__"],
-    deps = [],
+    deps = [
+        "@pypi//pydantic",
+    ],
 )

@@ -1,6 +1,7 @@
 load("@aspect_bazel_lib//lib:run_binary.bzl", "run_binary")
 load("@rules_python//python:py_binary.bzl", "py_binary")
 load("@rules_python//python:py_library.bzl", "py_library")
+load("@rules_python//python/entry_points:py_console_script_binary.bzl", "py_console_script_binary")
 
 py_library(
     name = "lib",
@@ -9,6 +10,7 @@ py_library(
     deps = [
         "@multiplayer-game//game_assets",
         "@multiplayer-game//lib",
+        "@pypi//fastapi",
         "@pypi//pygame",
     ],
 )
@@ -21,6 +23,42 @@ py_binary(
         "@multiplayer-game//game_assets",
         "@multiplayer-game//lib",
         "@pypi//pygame",
+    ],
+)
+
+# To run: bazel run //server:fastapi_dev_v1
+py_console_script_binary(
+    name = "fastapi_dev_v1",
+    args = [
+        "dev",
+        "server/v1/app.py",
+    ],
+    pkg = "@pypi//fastapi",
+    script = "fastapi",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@multiplayer-game//game_assets",
+        "@multiplayer-game//lib",
+        "@multiplayer-game//server:lib",
+        "@pypi//pydantic",
+    ],
+)
+
+# To run: bazel run //server:fastapi_prod_v1
+py_console_script_binary(
+    name = "fastapi_prod_v1",
+    args = [
+        "run",
+        "server/v1/app.py",
+    ],
+    pkg = "@pypi//fastapi",
+    script = "fastapi",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@multiplayer-game//game_assets",
+        "@multiplayer-game//lib",
+        "@multiplayer-game//server:lib",
+        "@pypi//pydantic",
     ],
 )
 

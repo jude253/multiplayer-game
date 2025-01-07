@@ -10,6 +10,13 @@ py_library(
         "@multiplayer-game//game_assets",
         "@multiplayer-game//lib",
         "@pypi//pygame",
+        "@pypi//requests",
+
+        # Explicitly referencing this as Bazel does not seem to pick
+        # this up as being a depenency of "@multiplayer-game//lib".
+        # Maybe I should use a wheel file or something for the lib
+        # to ensure the dependencies are captured correctly.
+        "@pypi//pydantic",
     ],
 )
 
@@ -20,7 +27,21 @@ py_binary(
     deps = [
         "@multiplayer-game//game_assets",
         "@multiplayer-game//lib",
+        "@pypi//pydantic",  # See note above
         "@pypi//pygame",
+    ],
+)
+
+py_binary(
+    name = "v1_client",
+    srcs = ["@multiplayer-game//client:lib"],
+    data = [],
+    main = "client/v1/client.py",
+    deps = [
+        "@multiplayer-game//game_assets",
+        "@pypi//pydantic",  # See note above
+        "@pypi//pygame",
+        "@pypi//requests",
     ],
 )
 
