@@ -45,6 +45,20 @@ py_console_script_binary(
     ],
 )
 
+py_console_script_binary(
+    name = "fastapi",
+    pkg = "@pypi//fastapi",
+    visibility = ["//visibility:public"],
+    deps = [
+        # This needs to have the dependencies needed by pyinstaller available
+        # in order for the dependencies to be included!
+        "@multiplayer-game//game_assets",
+        "@multiplayer-game//server:lib",
+        "@multiplayer-game//lib",
+        "@pypi//pygame",
+    ],
+)
+
 # To run: bazel run @@//:generate_requirements_lock_txt
 pip_compile(
     name = "generate_requirements_lock_txt",
