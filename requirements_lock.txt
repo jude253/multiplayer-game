@@ -756,6 +756,10 @@ watchfiles==1.0.3 \
     --hash=sha256:f79fe7993e230a12172ce7d7c7db061f046f672f2b946431c81aff8f60b2758b \
     --hash=sha256:ffe709b1d0bc2e9921257569675674cafb3a5f8af689ab9f3f2b3f88775b960f
     # via uvicorn
+websocket-client==1.8.0 \
+    --hash=sha256:17b44cc997f5c498e809b22cdf2d9c7a9e71c02c8cc2b6c56e7c2d1239bfa526 \
+    --hash=sha256:3239df9f44da632f96012472805d40a23281a991027ce11d2f45a6f24ac4c3da
+    # via -r requirements.in
 websockets==14.1 \
     --hash=sha256:00fe5da3f037041da1ee0cf8e308374e236883f9842c7c465aa65098b1c9af59 \
     --hash=sha256:01bb2d4f0a6d04538d3c5dfd27c0643269656c28045a53439cbf1c004f90897a \
@@ -826,4 +830,6 @@ websockets==14.1 \
     --hash=sha256:ed907449fe5e021933e46a3e65d651f641975a768d0649fee59f10c2985529ed \
     --hash=sha256:f6cf0ad281c979306a6a34242b371e90e891bce504509fb6bb5246bbbf31e7b6 \
     --hash=sha256:f95ba34d71e2fa0c5d225bde3b3bdb152e957150100e75c86bc7f3964c450d89
-    # via uvicorn
+    # via
+    #   -r requirements.in
+    #   uvicorn

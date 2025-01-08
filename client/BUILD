@@ -11,6 +11,8 @@ py_library(
         "@multiplayer-game//lib",
         "@pypi//pygame",
         "@pypi//requests",
+        "@pypi//websockets",
+        "@pypi//websocket_client",  # Import name for websocket-client
 
         # Explicitly referencing this as Bazel does not seem to pick
         # this up as being a depenency of "@multiplayer-game//lib".
@@ -29,6 +31,9 @@ py_binary(
         "@multiplayer-game//lib",
         "@pypi//pydantic",  # See note above
         "@pypi//pygame",
+        "@pypi//requests",
+        "@pypi//websocket_client",  # Import name for websocket-client
+        "@pypi//websockets",
     ],
 )
 
@@ -42,6 +47,8 @@ py_binary(
         "@pypi//pydantic",  # See note above
         "@pypi//pygame",
         "@pypi//requests",
+        "@pypi//websocket_client",  # Import name for websocket-client
+        "@pypi//websockets",
     ],
 )
 

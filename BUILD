@@ -22,6 +22,7 @@ py_console_script_binary(
 )
 
 # To run: bazel run //:black
+# Similar to (with .venv running): black client/**/*.py game_assets/**/*.py lib/**/*.py server/**/*.py
 py_console_script_binary(
     name = "black",
     args = [

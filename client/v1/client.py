@@ -16,10 +16,22 @@ seems to be able to.  Not sure if this is some caching issue that will
 be solved by a clean or if there's some mixed up config.
 """
 
-from lib.v1.config import FullPath, TEST_HTTP_DOMAIN
+from lib.v1.config import FullPath, TEST_DOMAIN, ROOT_PREFIX
 from lib.v1.common import PlayerInfo
 import requests
 import json
+import asyncio
+from websockets.asyncio.client import connect
+
+
+async def hello(player_info: PlayerInfo):
+    url = f"ws://{TEST_DOMAIN}{FullPath.WS.value}".replace(
+        "{player_session_uuid}", player_info.id
+    )
+    async with connect(url) as websocket:
+        await websocket.send("Hello world!")
+        message = await websocket.recv()
+        print(message)
 
 
 def prettify_json(response_json):
@@ -27,30 +39,32 @@ def prettify_json(response_json):
 
 
 if __name__ == "__main__":
-    r = requests.get(f"{TEST_HTTP_DOMAIN}")
+    r = requests.get(f"http://{TEST_DOMAIN}")
     print(prettify_json(r.json()))
 
-    r = requests.get(f"{TEST_HTTP_DOMAIN}/{FullPath.JOIN.value}")
+    r = requests.get(f"http://{TEST_DOMAIN}/{FullPath.JOIN.value}")
     player_info = PlayerInfo(**r.json()["player_info"])
     print(player_info)
 
     r = requests.get(
-        f"{TEST_HTTP_DOMAIN}/{FullPath.PING.value}".replace(
+        f"http://{TEST_DOMAIN}/{FullPath.PING.value}".replace(
             "{player_session_uuid}", player_info.id
         )
     )
     print(prettify_json(r.json()))
 
     r = requests.get(
-        f"{TEST_HTTP_DOMAIN}/{FullPath.UPDATE.value}".replace(
+        f"http://{TEST_DOMAIN}/{FullPath.UPDATE.value}".replace(
             "{player_session_uuid}", player_info.id
         )
     )
     print(prettify_json(r.json()))
 
     r = requests.get(
-        f"{TEST_HTTP_DOMAIN}/{FullPath.LEAVE.value}".replace(
+        f"http://{TEST_DOMAIN}/{FullPath.LEAVE.value}".replace(
             "{player_session_uuid}", player_info.id
         )
     )
     print(prettify_json(r.json()))
+
+    asyncio.run(hello(player_info))

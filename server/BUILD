@@ -12,6 +12,7 @@ py_library(
         "@multiplayer-game//lib",
         "@pypi//fastapi",
         "@pypi//pygame",
+        "@pypi//websockets",
     ],
 )
 
@@ -22,7 +23,9 @@ py_binary(
     deps = [
         "@multiplayer-game//game_assets",
         "@multiplayer-game//lib",
-        "@pypi//pygame",
+        "@pypi//fastapi",
+        "@pypi//pydantic",
+        "@pypi//websockets",
     ],
 )
 
@@ -41,6 +44,7 @@ py_console_script_binary(
         "@multiplayer-game//lib",
         "@multiplayer-game//server:lib",
         "@pypi//pydantic",
+        "@pypi//websockets",
     ],
 )
 
@@ -59,6 +63,7 @@ py_console_script_binary(
         "@multiplayer-game//lib",
         "@multiplayer-game//server:lib",
         "@pypi//pydantic",
+        "@pypi//websockets",
     ],
 )
 
