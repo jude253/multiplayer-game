@@ -1,5 +1,6 @@
 load("@rules_python//python:packaging.bzl", "py_package", "py_wheel")
 load("@rules_python//python:py_library.bzl", "py_library")
+load("@rules_python//python:py_test.bzl", "py_test")
 
 py_library(
     name = "lib",
@@ -8,6 +9,15 @@ py_library(
     deps = [
         "@pypi//pydantic",
     ],
+)
+
+py_test(
+    name = "lib_default_test",
+    srcs = [
+        "@multiplayer-game//test:test_lib",
+    ],
+    main = "lib/test.py",
+    deps = ["//lib"],
 )
 
 # Maybe this can help to import dependencies automaticatlly or something:
