@@ -32,6 +32,7 @@ py_console_script_binary(
         "$(rootpaths @multiplayer-game//lib)",
         "$(rootpaths @multiplayer-game//client:lib)",
         "$(rootpaths @multiplayer-game//server:lib)",
+        "$(rootpaths @multiplayer-game//test:test_lib)",
         "-v",
     ],
     data = [
@@ -49,6 +50,7 @@ py_console_script_binary(
         "@multiplayer-game//lib",
         "@multiplayer-game//client:lib",
         "@multiplayer-game//server:lib",
+        "@multiplayer-game//test:test_lib",
     ],
 )
 

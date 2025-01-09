@@ -1,0 +1,9 @@
+# Make Bazel 7 use bzlmod by default
+common --enable_bzlmod
+
+# Not sure what this option does.  It is in response to this comment:
+# WARNING: Build options --collect_code_coverage and 
+# --instrumentation_filter have changed, discarding analysis cache 
+# (this can be expensive, see 
+# https://bazel.build/advanced/performance/iteration-speed).
+common --collect_code_coverage

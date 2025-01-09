@@ -18,6 +18,7 @@ python_version = "3.13"
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
+    configure_coverage_tool = True,
     is_default = True,
     # We can specify the exact version.
     python_version = python_version,
