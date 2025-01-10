@@ -27,6 +27,7 @@ fastapi dev server/v1/app.py
 NOTE: the watch mode will only work if bazel built again.
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 import sys
 from typing import Dict
@@ -34,14 +35,15 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import uuid
 import logging
 
+import uvicorn
+
 from lib.v1.common import PlayerInfo
 from lib.v1.config import TEST_HOST, TEST_PORT, FullPath
 from lib.data_structures import Point
-import threading
-import time
 from datetime import datetime, timezone
 
-from lib.v1.config import ROOT_PREFIX
+from lib.v1.dummy_game import async_simple_game_function
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -51,14 +53,6 @@ logging.basicConfig(
     format="%(asctime)s:%(levelname)s:%(message)s",
     datefmt="%m/%d/%Y %I:%M:%S %p",
 )
-
-
-class BackgroundTasks(threading.Thread):
-    def run(self, *args, **kwargs):
-        global IS_RUNNING
-        while IS_RUNNING:
-            logger.info("Tick")
-            time.sleep(1)
 
 
 class ConnectionManager:
@@ -82,10 +76,6 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-
-# For terminating the background task
-IS_RUNNING = True
-
 # For keeping track of players on server
 ALL_PLAYERS: Dict[str, PlayerInfo] = {}
 
@@ -106,18 +96,18 @@ async def lifespan(app: FastAPI):
     - https://stackoverflow.com/a/70873984
     - https://fastapi.tiangolo.com/advanced/events/#lifespan
     """
-    global IS_RUNNING
-    logger.info("lifespan starting up!")
-    t = BackgroundTasks(daemon=True)
-    t.start()
+
+    # Not sure what is best for this.  Thinking it could be good to run
+    # This headlessly maybe? Id.  It would be nice to have pygame
+    # running on server to reuse the same logic as in the game, but
+    # not sure what is best exactly yet.  Need some sort of queue system
+    asyncio.create_task(async_simple_game_function())
 
     yield
 
     logger.info("lifespan closing!")
 
     # Docs: https://docs.python.org/3/library/threading.html#thread-objects
-    IS_RUNNING = False
-    t.join()
 
 
 app = FastAPI(
@@ -238,3 +228,7 @@ async def websocket_endpoint(websocket: WebSocket, player_session_uuid: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast(f"Client {player_session_uuid} left the chat")
+
+
+def start_uvicorn_server():
+    uvicorn.run("server.v1.app:app", host=TEST_HOST, port=TEST_PORT)
