@@ -7,7 +7,9 @@ py_library(
     srcs = glob(["**/*.py"]),
     visibility = ["//:__subpackages__"],
     deps = [
+        "@multiplayer-game//game_assets",
         "@pypi//pydantic",
+        "@pypi//pygame",
     ],
 )
 
@@ -17,6 +19,15 @@ py_test(
         "@multiplayer-game//test:test_lib",
     ],
     main = "lib/test.py",
+    deps = ["//lib"],
+)
+
+py_test(
+    name = "test_dummy_game",
+    srcs = [
+        "@multiplayer-game//test:test_lib",
+    ],
+    main = "lib/test_dummy_game.py",
     deps = ["//lib"],
 )
 
