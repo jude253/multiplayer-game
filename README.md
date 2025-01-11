@@ -54,3 +54,22 @@ constructs into the release binary.  Instead, this same sort of approach
 is used but using the built-in Python library `importlib.resources`.
 This data can then be bundled into the release binaries by using the
 `--collect-data` option for PyInstaller.
+
+
+# Using virtual environemnt for better IDE integration
+
+Using the virutal environment will allow using tools like the debugger
+integrated with the IDE and also clicking the run button to run python
+files or using the virual environment for development to avoid bazel
+redownloading all the python targets repeatedly.  Currently, there is
+not a simple and automatable way for the virtual environment to find the
+local bazel python packages.  To get around this create a `.env` file
+in the root of this bazel workspace with `PYTHONPATH` set to the 
+absolute path to this workspace like this example:
+
+```
+PYTHONPATH='/Users/jude/workplace/multiplayer-game/'
+```
+
+This will allow the virtual environment to find the local bazel python
+packages and run these files with the interpreter.
