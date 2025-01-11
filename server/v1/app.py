@@ -42,7 +42,7 @@ from lib.v1.config import TEST_HOST, TEST_PORT, FullPath
 from lib.data_structures import Point
 from datetime import datetime, timezone
 
-from lib.v1.dummy_game import async_simple_game_function
+from server.v1.async_simple_game_event_queue import async_simple_game_function_event
 
 
 logger = logging.getLogger(__name__)
@@ -79,6 +79,7 @@ manager = ConnectionManager()
 # For keeping track of players on server
 ALL_PLAYERS: Dict[str, PlayerInfo] = {}
 
+NETWORK_EVENT_QUEUE = asyncio.Queue()
 
 print(Point(100, 100))
 
@@ -97,11 +98,9 @@ async def lifespan(app: FastAPI):
     - https://fastapi.tiangolo.com/advanced/events/#lifespan
     """
 
-    # Not sure what is best for this.  Thinking it could be good to run
-    # This headlessly maybe? Id.  It would be nice to have pygame
-    # running on server to reuse the same logic as in the game, but
-    # not sure what is best exactly yet.  Need some sort of queue system
-    asyncio.create_task(async_simple_game_function())
+    asyncio.create_task(
+        async_simple_game_function_event(network_event_queue=NETWORK_EVENT_QUEUE)
+    )
 
     yield
 
@@ -223,6 +222,7 @@ async def websocket_endpoint(websocket: WebSocket, player_session_uuid: str):
     try:
         while True:
             data = await websocket.receive_text()
+            NETWORK_EVENT_QUEUE.put_nowait((player_session_uuid, data))
             await manager.send_personal_message(f"You wrote: {data}", websocket)
             await manager.broadcast(f"Client {player_session_uuid} says: {data}")
     except WebSocketDisconnect:
@@ -230,5 +230,7 @@ async def websocket_endpoint(websocket: WebSocket, player_session_uuid: str):
         await manager.broadcast(f"Client {player_session_uuid} left the chat")
 
 
-def start_uvicorn_server():
-    uvicorn.run("server.v1.app:app", host=TEST_HOST, port=TEST_PORT)
+async def start_uvicorn_server():
+    config = uvicorn.Config("server.v1.app:app", host=TEST_HOST, port=TEST_PORT)
+    server = uvicorn.Server(config)
+    await server.serve()

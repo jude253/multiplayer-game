@@ -1,4 +1,4 @@
-from server.v1.dummy_game_with_server_socket import start_uvicorn_server
+from server.v1.app import start_uvicorn_server
 import asyncio
 
 if __name__ == "__main__":
