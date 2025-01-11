@@ -12,9 +12,9 @@ async def main(self: unittest.TestCase):
     NOTE: pygame may only open one window and draw on it from both game
     loops.
     """
-    # Start server first in task, allowing .5 seconds for start up
+    # Start server first in task, allowing some time for start up
     server_task = asyncio.create_task(start_uvicorn_server())
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(1)
 
     # Start client, which is communicating with server
     client_task = asyncio.create_task(
@@ -28,15 +28,20 @@ async def main(self: unittest.TestCase):
     server_exception = None
     client_exception = None
 
+    # Not sure if below awaits are needed, but want to make sure the
+    # tasks aren't cancelled before testing them.
     try:
-        server_task.exception()
+        await server_task.exception()
     except Exception as e:
         server_exception = e
 
     try:
-        client_task.exception()
+        await client_task.exception()
     except Exception as e:
         client_exception = e
+
+    # give some runtime
+    await asyncio.sleep(0.5)
 
     # Ensure that asyncio.exceptions.InvalidStateError, meaning that no exceptions raised
     self.assertIsInstance(server_exception, asyncio.exceptions.InvalidStateError)
