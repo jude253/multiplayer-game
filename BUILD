@@ -1,3 +1,4 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
 load("@rules_python//python/entry_points:py_console_script_binary.bzl", "py_console_script_binary")
 load("@rules_uv//uv:pip.bzl", "pip_compile")
 load("@rules_uv//uv:venv.bzl", "create_venv")
@@ -79,6 +80,14 @@ create_venv(
     name = "create_venv",
     destination_folder = ".venv",
     requirements_txt = "//:requirements_lock.txt",
+)
+
+# Run this to set the environment variable PYTHONPATH in .env file to
+# allow virtual environment to find local python modules.
+# To run: bazel run @@//:create_env_file
+py_binary(
+    name = "create_env_file",
+    srcs = ["//:tools/create_env_file.py"],
 )
 
 exports_files(

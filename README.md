@@ -73,3 +73,6 @@ PYTHONPATH='/Users/jude/workplace/multiplayer-game/'
 
 This will allow the virtual environment to find the local bazel python
 packages and run these files with the interpreter.
+
+NOTE: Added `bazel run @@//:create_env_file` to automate creating the
+`.env` file.
