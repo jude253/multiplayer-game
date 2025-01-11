@@ -5,3 +5,17 @@ py_library(
     srcs = glob(["**/*.py"]),
     visibility = ["//:__subpackages__"],
 )
+
+py_test(
+    name = "test_client_server",
+    srcs = [
+        "@multiplayer-game//test:test_lib",
+    ],
+    main = "general/test_client_server.py",
+    deps = [
+        "@multiplayer-game//client:lib",
+        "@multiplayer-game//game_assets",
+        "@multiplayer-game//lib",
+        "@multiplayer-game//server:lib",
+    ],
+)
