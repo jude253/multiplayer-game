@@ -9,6 +9,7 @@ NOTE: Optionally run `python -m websockets ws://127.0.0.1:8000/v1/ws/2`
 from another terminal window to watch the messages as another client.
 """
 
+import ast
 import sys
 import pygame
 import asyncio
@@ -17,7 +18,7 @@ import requests
 from websockets import connect
 from websockets.asyncio.client import ClientConnection
 from game_assets.interface import get_intro_image_path
-from lib.v1.common import PlayerInfo, WS_Message
+from lib.v1.common import PlayerInfo, WS_Message, parse_WS_Message
 from lib.v1.config import TEST_DOMAIN, FullPath
 
 
@@ -42,11 +43,12 @@ async def receive_worker(websocket: ClientConnection, processed_queue: asyncio.Q
     while True:
         # Do work
         message = await websocket.recv()
+        ws_msg: WS_Message = parse_WS_Message(message)
 
-        # Add received message to processed_queue
-        processed_queue.put_nowait(message)
-
-        print("processed_queue.put_nowait(message)")
+        # Only put allowed events in the NETWORK_EVENT_QUEUE for game
+        if ws_msg.message_type == "ALL_CLIENT_POSITIONS_V1":
+            # Add received, valid message to processed_queue
+            processed_queue.put_nowait(ws_msg)
 
 
 async def async_simple_game_function_with_socket_communication():
@@ -74,6 +76,7 @@ async def async_simple_game_function_with_socket_communication():
     clock = pygame.time.Clock()
 
     default_font_name = pygame.font.get_default_font()
+    small_font = pygame.font.SysFont(default_font_name, 24)
     font = pygame.font.SysFont(default_font_name, 40)
 
     ball = pygame.image.load(get_intro_image_path())
@@ -88,6 +91,8 @@ async def async_simple_game_function_with_socket_communication():
     # Create queues that we will use to store our "workload".
     send_queue = asyncio.Queue()
     processed_queue = asyncio.Queue()
+
+    ball_rect_player_dict = {}
 
     # Random Player info:
     r = requests.get(f"http://{TEST_DOMAIN}/{FullPath.JOIN.value}")
@@ -109,11 +114,22 @@ async def async_simple_game_function_with_socket_communication():
             # pygame.QUIT event means the user clicked X to close your window
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    r = requests.get(
+                        f"http://{TEST_DOMAIN}/{FullPath.LEAVE.value}".replace(
+                            "{player_session_uuid}", player_info.id
+                        )
+                    )
                     running = False
 
             while not processed_queue.empty():
-                processed_message = processed_queue.get_nowait()
-                print(processed_message)
+                ws_msg: WS_Message = processed_queue.get_nowait()
+                print(ws_msg)
+                if ws_msg.message_type == "ALL_CLIENT_POSITIONS_V1":
+                    try:
+                        ball_rect_player_dict = ast.literal_eval(ws_msg.body)
+
+                    except Exception as e:
+                        print(e)
 
             # UPDATE
             cur_fps = round(clock.get_fps())
@@ -145,6 +161,15 @@ async def async_simple_game_function_with_socket_communication():
             # RENDER YOUR GAME HERE
 
             screen.blit(ball, ball_rect)
+
+            for player_session_uuid, client_ball_rect in ball_rect_player_dict.items():
+                if player_session_uuid != player_info.id:
+                    screen.blit(ball, client_ball_rect)
+                    player_id_text_surface = small_font.render(
+                        f"{player_session_uuid}", False, "pink"
+                    )
+                    screen.blit(player_id_text_surface, ball_rect)
+
             screen.blit(text_surface_fps, (0, 0))
 
             # flip() the display to put your work on screen
