@@ -37,7 +37,7 @@ import logging
 
 import uvicorn
 
-from lib.v1.common import PlayerInfo
+from lib.v1.common import PlayerInfo, parse_WS_Message
 from lib.v1.config import TEST_HOST, TEST_PORT, FullPath
 from lib.data_structures import Point
 from datetime import datetime, timezone
@@ -222,7 +222,13 @@ async def websocket_endpoint(websocket: WebSocket, player_session_uuid: str):
     try:
         while True:
             data = await websocket.receive_text()
-            NETWORK_EVENT_QUEUE.put_nowait((player_session_uuid, data))
+            ws_msg = parse_WS_Message(data)
+
+            # Only put allowed events in the NETWORK_EVENT_QUEUE for game
+            if ws_msg.message_type == "CLIENT_POSITION_V1":
+                NETWORK_EVENT_QUEUE.put_nowait(ws_msg)
+
+            # Send out this info for debugging
             await manager.send_personal_message(f"You wrote: {data}", websocket)
             await manager.broadcast(f"Client {player_session_uuid} says: {data}")
     except WebSocketDisconnect:

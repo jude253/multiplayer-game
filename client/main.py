@@ -17,7 +17,7 @@ import requests
 from websockets import connect
 from websockets.asyncio.client import ClientConnection
 from game_assets.interface import get_intro_image_path
-from lib.v1.common import PlayerInfo
+from lib.v1.common import PlayerInfo, WS_Message
 from lib.v1.config import TEST_DOMAIN, FullPath
 
 
@@ -27,10 +27,9 @@ async def send_worker(websocket: ClientConnection, send_queue: asyncio.Queue):
     """
     while True:
         # Get a "work item" out of the queue.
-        message = await send_queue.get()
-
+        message: WS_Message = await send_queue.get()
         # Do work
-        await websocket.send(str(message))
+        await websocket.send(message.model_dump_json())
 
         # Notify the queue that the "work item" has been processed.
         send_queue.task_done()
@@ -71,7 +70,7 @@ async def async_simple_game_function_with_socket_communication():
     pygame.font.init()
     pygame.init()
     pygame.display.set_caption("CLIENT")
-    screen = pygame.display.set_mode((1280, 720))
+    screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
     clock = pygame.time.Clock()
 
     default_font_name = pygame.font.get_default_font()
@@ -132,7 +131,11 @@ async def async_simple_game_function_with_socket_communication():
             # Make a call to the server about about 10 TPS
             if frame_count % (target_fps // 10) == 0:
                 send_queue.put_nowait(
-                    (ball_rect.x, ball_rect.y, ball_rect.w, ball_rect.h)
+                    WS_Message(
+                        player_session_uuid=player_info.id,
+                        message_type="CLIENT_POSITION_V1",
+                        body=str((ball_rect.x, ball_rect.y, ball_rect.w, ball_rect.h)),
+                    )
                 )
 
             text_surface_fps = font.render(f"FPS: {cur_fps}", False, "yellow")

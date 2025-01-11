@@ -3,6 +3,7 @@ import sys
 import pygame
 import asyncio
 from game_assets.interface import get_intro_image_path
+from lib.v1.common import WS_Message
 
 
 async def async_simple_game_function_event(network_event_queue: asyncio.Queue):
@@ -15,7 +16,7 @@ async def async_simple_game_function_event(network_event_queue: asyncio.Queue):
     pygame.font.init()
     pygame.init()
     pygame.display.set_caption("SERVER")
-    screen = pygame.display.set_mode((1280, 720))
+    screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
     clock = pygame.time.Clock()
 
     default_font_name = pygame.font.get_default_font()
@@ -38,11 +39,14 @@ async def async_simple_game_function_event(network_event_queue: asyncio.Queue):
                 running = False
 
         while not network_event_queue.empty():
-            player_session_uuid, rect_str = network_event_queue.get_nowait()
-            try:
-                ball_rect_player_dict[player_session_uuid] = ast.literal_eval(rect_str)
-            except Exception as e:
-                print(e)
+            ws_msg: WS_Message = network_event_queue.get_nowait()
+            if ws_msg.message_type == "CLIENT_POSITION_V1":
+                try:
+                    ball_rect_player_dict[ws_msg.player_session_uuid] = (
+                        ast.literal_eval(ws_msg.body)
+                    )
+                except Exception as e:
+                    print(e)
 
         # UPDATE
         cur_fps = round(clock.get_fps())
