@@ -82,7 +82,16 @@ class ConnectionManager:
 
     async def broadcast(self, message: str):
         for connection in self.active_connections:
-            await connection.send_text(message)
+            # If a disconnect exception gets raised when broadcasting,
+            # catch it and log it, so the right client will be disconnected,
+            # not any that happens to get this error when trying to
+            # broadcast a message to all clients and disconnected the
+            # client that gets this error caught, who still has an open
+            # websocket connection.
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logger.exception(e)
 
 
 manager = ConnectionManager()
