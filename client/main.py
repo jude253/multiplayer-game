@@ -10,6 +10,7 @@ from another terminal window to watch the messages as another client.
 """
 
 import ast
+import os
 import sys
 import pygame
 import asyncio
@@ -20,6 +21,14 @@ from websockets.asyncio.client import ClientConnection
 from game_assets.interface import get_intro_image_path
 from lib.v1.common import PlayerInfo, WS_Message, parse_WS_Message
 from lib.v1.config import TEST_DOMAIN, FullPath
+
+# Add in some super simple way to have a different domain and ssl or not.
+# EX:
+# (export DOMAIN="0.0.0.0" && export SECURE=TRUE && python client/main.py)
+# (export DOMAIN="0.0.0.0" && export SECURE=TRUE && bazel run client:main)
+# (export DOMAIN="localhost:8000" && bazel run client:main)
+DOMAIN = os.environ.get("DOMAIN", TEST_DOMAIN)
+SECURE_S = "s" if os.environ.get("SECURE", "false").lower() == "true" else ""
 
 
 async def send_worker(websocket: ClientConnection, send_queue: asyncio.Queue):
@@ -46,7 +55,10 @@ async def receive_worker(websocket: ClientConnection, processed_queue: asyncio.Q
         ws_msg: WS_Message = parse_WS_Message(message)
 
         # Only put allowed events in the NETWORK_EVENT_QUEUE for game
-        if ws_msg.message_type == "ALL_CLIENT_POSITIONS_V1":
+        if ws_msg.message_type == "CLIENT_POSITION_V1":
+            # Add received, valid message to processed_queue
+            processed_queue.put_nowait(ws_msg)
+        if ws_msg.message_type == "CLIENT_DISCONNECTED_FROM_SERVER_V2":
             # Add received, valid message to processed_queue
             processed_queue.put_nowait(ws_msg)
 
@@ -95,9 +107,9 @@ async def async_simple_game_function_with_socket_communication():
     ball_rect_player_dict = {}
 
     # Random Player info:
-    r = requests.get(f"http://{TEST_DOMAIN}/{FullPath.JOIN.value}")
+    r = requests.get(f"http{SECURE_S}://{DOMAIN}/{FullPath.JOIN.value}")
     player_info = PlayerInfo(**r.json()["player_info"])
-    url = f"ws://{TEST_DOMAIN}{FullPath.WS.value}".replace(
+    url = f"ws{SECURE_S}://{DOMAIN}{FullPath.WS.value}".replace(
         "{player_session_uuid}", player_info.id
     )
     async with connect(
@@ -115,7 +127,7 @@ async def async_simple_game_function_with_socket_communication():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     r = requests.get(
-                        f"http://{TEST_DOMAIN}/{FullPath.LEAVE.value}".replace(
+                        f"http{SECURE_S}://{DOMAIN}/{FullPath.LEAVE.value}".replace(
                             "{player_session_uuid}", player_info.id
                         )
                     )
@@ -124,10 +136,16 @@ async def async_simple_game_function_with_socket_communication():
             while not processed_queue.empty():
                 ws_msg: WS_Message = processed_queue.get_nowait()
                 print(ws_msg)
-                if ws_msg.message_type == "ALL_CLIENT_POSITIONS_V1":
+                if ws_msg.message_type == "CLIENT_POSITION_V1":
                     try:
-                        ball_rect_player_dict = ast.literal_eval(ws_msg.body)
-
+                        ball_rect_player_dict[ws_msg.player_session_uuid] = (
+                            ast.literal_eval(ws_msg.body)
+                        )
+                    except Exception as e:
+                        print(e)
+                if ws_msg.message_type == "CLIENT_DISCONNECTED_FROM_SERVER_V2":
+                    try:
+                        ball_rect_player_dict.pop(ws_msg.player_session_uuid)
                     except Exception as e:
                         print(e)
 

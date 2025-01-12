@@ -59,30 +59,30 @@ logging.basicConfig(
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
+        self.active_player_uuids: set[str] = set()
+        self.network_event_io_queue = asyncio.Queue()
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, player_session_uuid: str):
         await websocket.accept()
         self.active_connections.append(websocket)
+        self.active_player_uuids.add(player_session_uuid)
 
-    def disconnect(self, websocket: WebSocket):
+    def disconnect(self, websocket: WebSocket, player_session_uuid: str):
+        ws_disconnect_msg = WS_Message(
+            player_session_uuid=player_session_uuid,
+            message_type="CLIENT_DISCONNECTED_FROM_SERVER_V2",
+            body="",
+        )
+        self.network_event_io_queue.put_nowait(ws_disconnect_msg)
         self.active_connections.remove(websocket)
+        self.active_player_uuids.remove(player_session_uuid)
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
-        # Wrap this logic in try catch to better understand issue
-        # outlined in `NOTE:` by `WebSocketDisconnect`
-        try:
-            await websocket.send_text(message)
-        except Exception as e:
-            print(e)
+        await websocket.send_text(message)
 
     async def broadcast(self, message: str):
-        # Wrap this logic in try catch to better understand issue
-        # outlined in `NOTE:` by `WebSocketDisconnect`
         for connection in self.active_connections:
-            try:
-                await connection.send_text(message)
-            except Exception as e:
-                print(e)
+            await connection.send_text(message)
 
 
 manager = ConnectionManager()
@@ -109,13 +109,19 @@ async def lifespan(app: FastAPI):
     - https://stackoverflow.com/a/70873984
     - https://fastapi.tiangolo.com/advanced/events/#lifespan
     """
+    logger.info("lifespan starting!")
 
-    asyncio.create_task(
-        async_simple_game_function_event(
-            network_event_in_queue=NETWORK_EVENT_IN_QUEUE,
-            network_event_out_queue=NETWORK_EVENT_OUT_QUEUE,
-        )
-    )
+    # Comment out pygame so that the server connect/disconnect
+    # can be handled on it's own.  It is too complext to follow
+    # the logic to pygame and back.  I think I will send events to
+    # PyGame from the server as if it was another client that cannot
+    # play at some point.
+    # asyncio.create_task(
+    #     async_simple_game_function_event(
+    #         network_event_in_queue=NETWORK_EVENT_IN_QUEUE,
+    #         network_event_out_queue=NETWORK_EVENT_OUT_QUEUE,
+    #     )
+    # )
 
     yield
 
@@ -233,48 +239,35 @@ async def get_leave(player_session_uuid: str):
 @app.websocket(FullPath.WS.value)
 async def websocket_endpoint(websocket: WebSocket, player_session_uuid: str):
     global manager
-    await manager.connect(websocket)
+    await manager.connect(websocket, player_session_uuid)
     try:
         while True:
+            data = await websocket.receive_text()
+            ws_msg = parse_WS_Message(data)
 
-            # Don't try to receive text if no active connections
-            if manager.active_connections:
-                data = await websocket.receive_text()
-                ws_msg = parse_WS_Message(data)
-                # Only put allowed events in the NETWORK_EVENT_IN_QUEUE for game
-                if ws_msg.message_type == "CLIENT_POSITION_V1":
-                    NETWORK_EVENT_IN_QUEUE.put_nowait(ws_msg)
+            if ws_msg.message_type == "CLIENT_POSITION_V1":
+                manager.network_event_io_queue.put_nowait(ws_msg)
 
-                # Send out this info for debugging
-                await manager.send_personal_message(f"You wrote: {data}", websocket)
-                await manager.broadcast(f"Client {player_session_uuid} says: {data}")
+            # Send out this info for debugging
+            await manager.send_personal_message(f"You wrote: {data}", websocket)
+            await manager.broadcast(f"Client {player_session_uuid} says: {data}")
 
-            while not NETWORK_EVENT_OUT_QUEUE.empty():
-                message: WS_Message = await NETWORK_EVENT_OUT_QUEUE.get()
-                await manager.broadcast(message.model_dump_json())
+            while not manager.network_event_io_queue.empty():
+                message: WS_Message = await manager.network_event_io_queue.get()
+
+                # Might be better to abstract this at somepoint:
+
+                # Only send client posititions for active players
+                if (
+                    message.message_type == "CLIENT_POSITION_V1"
+                    and message.player_session_uuid in manager.active_player_uuids
+                ):
+                    await manager.broadcast(message.model_dump_json())
+                if message.message_type == "CLIENT_DISCONNECTED_FROM_SERVER_V2":
+                    await manager.broadcast(message.model_dump_json())
+
     except WebSocketDisconnect:
-        # NOTE: this approach doesn't work for disconnecting. Need to
-        # understand this deeper.  Might need all communication to happen
-        # Through queueues or like garbage collecting of clients that
-        # disconnected.
-        # It also seems like the `/leave` may be process after the client
-        # has disonnected and the client already and the characters might
-        # be getting mixed up on the clients, as the one without a uuid
-        # should be what is moved, but that seems to get switched sometimes
-        # Maybe after disconnects?
-        #
-        # NOTE: Update - I think this has something to do with code
-        # being run in a somewhat unpredicitable order b/c of the async
-        # event loop deciding what code to executed next and in what
-        # order?
-        NETWORK_EVENT_IN_QUEUE.put_nowait(
-            WS_Message(
-                player_session_uuid=player_session_uuid,
-                message_type="CLIENT_DISCONNECTED_FROM_SERVER_V1",
-                body="",
-            )
-        )
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, player_session_uuid)
         await manager.broadcast(f"Client {player_session_uuid} left the chat")
 
 
