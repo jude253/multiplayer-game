@@ -76,3 +76,30 @@ packages and run these files with the interpreter.
 
 NOTE: Added `bazel run @@//:create_env_file` to automate creating the
 `.env` file.
+
+
+## Simple Setup Steps
+
+0. Install npm
+
+1. Install [bazelisk](https://github.com/bazelbuild/bazelisk) using npm: `npm install -g @bazel/bazelisk`
+
+1. Clone this repo from github
+
+1. Change directory to git repo root
+
+1. Run `bazel build //...` to build everthing
+    
+    1. If this errors, you may need to install `gcc` or other devtools, like maybe xcode cli tool.
+
+1. Run server with `bazel run //server:main`
+
+1. Run client with `bazel run //client:main`
+
+
+### Example command to connect to different domain than test domain:
+
+```bash
+(export DOMAIN="0.0.0.0" && export SECURE=TRUE && bazel run client:main)
+```
+
