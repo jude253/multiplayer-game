@@ -36,6 +36,7 @@ import uuid
 import logging
 
 import uvicorn
+import websockets
 
 from lib.v1.common import PlayerInfo, WS_Message, parse_WS_Message
 from lib.v1.config import TEST_HOST, TEST_PORT, FullPath
@@ -67,11 +68,21 @@ class ConnectionManager:
         self.active_connections.remove(websocket)
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
+        # Wrap this logic in try catch to better understand issue
+        # outlined in `NOTE:` by `WebSocketDisconnect`
+        try:
+            await websocket.send_text(message)
+        except Exception as e:
+            print(e)
 
     async def broadcast(self, message: str):
+        # Wrap this logic in try catch to better understand issue
+        # outlined in `NOTE:` by `WebSocketDisconnect`
         for connection in self.active_connections:
-            await connection.send_text(message)
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                print(e)
 
 
 manager = ConnectionManager()
@@ -212,17 +223,6 @@ async def get_leave(player_session_uuid: str):
         return {
             "player_info": {},
         }
-    # NOTE: this approach doesn't work for disconnecting. Need to
-    # understand this deeper.  Might need all communication to happen
-    # Through queueues or like garbage collecting of clients that
-    # disconnected.
-    NETWORK_EVENT_IN_QUEUE.put_nowait(
-        WS_Message(
-            player_session_uuid=player_session_uuid,
-            message_type="CLIENT_DISCONNECTED_FROM_SERVER_V1",
-            body="",
-        )
-    )
     player_info = ALL_PLAYERS.pop(player_session_uuid)
 
     return {
@@ -232,25 +232,27 @@ async def get_leave(player_session_uuid: str):
 
 @app.websocket(FullPath.WS.value)
 async def websocket_endpoint(websocket: WebSocket, player_session_uuid: str):
+    global manager
     await manager.connect(websocket)
     try:
         while True:
-            data = await websocket.receive_text()
-            ws_msg = parse_WS_Message(data)
 
-            # Only put allowed events in the NETWORK_EVENT_IN_QUEUE for game
-            if ws_msg.message_type == "CLIENT_POSITION_V1":
-                NETWORK_EVENT_IN_QUEUE.put_nowait(ws_msg)
+            # Don't try to receive text if no active connections
+            if manager.active_connections:
+                data = await websocket.receive_text()
+                ws_msg = parse_WS_Message(data)
+                # Only put allowed events in the NETWORK_EVENT_IN_QUEUE for game
+                if ws_msg.message_type == "CLIENT_POSITION_V1":
+                    NETWORK_EVENT_IN_QUEUE.put_nowait(ws_msg)
 
-            # Send out this info for debugging
-            await manager.send_personal_message(f"You wrote: {data}", websocket)
-            await manager.broadcast(f"Client {player_session_uuid} says: {data}")
+                # Send out this info for debugging
+                await manager.send_personal_message(f"You wrote: {data}", websocket)
+                await manager.broadcast(f"Client {player_session_uuid} says: {data}")
 
             while not NETWORK_EVENT_OUT_QUEUE.empty():
                 message: WS_Message = await NETWORK_EVENT_OUT_QUEUE.get()
                 await manager.broadcast(message.model_dump_json())
     except WebSocketDisconnect:
-
         # NOTE: this approach doesn't work for disconnecting. Need to
         # understand this deeper.  Might need all communication to happen
         # Through queueues or like garbage collecting of clients that
@@ -260,13 +262,19 @@ async def websocket_endpoint(websocket: WebSocket, player_session_uuid: str):
         # be getting mixed up on the clients, as the one without a uuid
         # should be what is moved, but that seems to get switched sometimes
         # Maybe after disconnects?
-        # NETWORK_EVENT_IN_QUEUE.put_nowait(WS_Message(
-        #     player_session_uuid=player_session_uuid,
-        #     message_type='CLIENT_DISCONNECTED_FROM_SERVER_V1',
-        #     body=''
-        # ))
+        #
+        # NOTE: Update - I think this has something to do with code
+        # being run in a somewhat unpredicitable order b/c of the async
+        # event loop deciding what code to executed next and in what
+        # order?
+        NETWORK_EVENT_IN_QUEUE.put_nowait(
+            WS_Message(
+                player_session_uuid=player_session_uuid,
+                message_type="CLIENT_DISCONNECTED_FROM_SERVER_V1",
+                body="",
+            )
+        )
         manager.disconnect(websocket)
-
         await manager.broadcast(f"Client {player_session_uuid} left the chat")
 
 

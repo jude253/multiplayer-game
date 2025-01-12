@@ -168,7 +168,7 @@ async def async_simple_game_function_with_socket_communication():
                     player_id_text_surface = small_font.render(
                         f"{player_session_uuid}", False, "pink"
                     )
-                    screen.blit(player_id_text_surface, ball_rect)
+                    screen.blit(player_id_text_surface, client_ball_rect)
 
             screen.blit(text_surface_fps, (0, 0))
 
