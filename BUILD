@@ -94,3 +94,40 @@ exports_files(
     ["requirements_lock.txt"],
     visibility = ["//visibility:public"],
 )
+
+################################################################################
+# EMSCRIPTEN
+################################################################################
+# This is pretty janky at the moment, but it's the first way I was able
+# to get emscipten/emsdk/emcc to run.  I'd like to have it integrate
+# naturally with Bazel, but I can't wrap my head around why it isn't
+# working following the bazel tutorial on the bazel website or in the
+# /bazel dirctory in emsdk.
+
+# bazel build //:install_emsdk
+genrule(
+    name = "install_emsdk",
+    srcs = [
+        "@emsdk//:emsdk_files",
+        "@emsdk//:emsdk_bin",
+    ],
+    outs = [
+        "activate_latest_log.txt",
+    ],
+    cmd = "./$(locations @emsdk//:emsdk_bin) install latest && ./$(locations @emsdk//:emsdk_bin) activate latest > $@",
+)
+
+# bazel run //:emcc
+genrule(
+    name = "emcc",
+    srcs = [
+        "@emsdk//:emsdk_bin",
+    ],
+    outs = [
+        "emcc.txt",
+    ],
+    # Get path to emscripten, cd to it, then run emcc from there:
+    cmd = "EMSDK_PATH=bazel-multiplayer-game/$(SRCS) && echo \"cd $${EMSDK_PATH:0:$${#EMSDK_PATH}-5} && ./upstream/emscripten/emcc\" > $@",
+    executable = True,
+    tools = ["@//:install_emsdk"],
+)

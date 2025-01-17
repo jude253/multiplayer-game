@@ -33,3 +33,15 @@ pip.parse(
     requirements_lock = "//:requirements_lock.txt",
 )
 use_repo(pip, "pypi")
+
+## emsdk
+# https://bazel.build/external/migration#fetch-deps-module-extensions
+# https://github.com/emscripten-core/emsdk/tree/main/bazel
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "emsdk",
+    build_file = "@//:tools/emsdk.BUILD",
+    integrity = "sha256-hlz2GEgxWItjWT5JGWSrBonc5mX2AS0OJOR1i27lFkw=",
+    url = "https://github.com/emscripten-core/emsdk/archive/refs/tags/4.0.1.zip",
+)
