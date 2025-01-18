@@ -117,17 +117,20 @@ genrule(
     cmd = "./$(locations @emsdk//:emsdk_bin) install latest && ./$(locations @emsdk//:emsdk_bin) activate latest > $@",
 )
 
+# Make wrapper around emcc that sets correct env vars allows passing in args
 # bazel run //:emcc
 genrule(
     name = "emcc",
     srcs = [
         "@emsdk//:emsdk_bin",
+        "@emsdk//:emsdk_files",
     ],
     outs = [
-        "emcc.txt",
+        "emcc.sh",
     ],
-    # Get path to emscripten, cd to it, then run emcc from there:
-    cmd = "EMSDK_PATH=bazel-multiplayer-game/$(SRCS) && echo \"cd $${EMSDK_PATH:0:$${#EMSDK_PATH}-5} && ./upstream/emscripten/emcc\" > $@",
+    # activate latest emscritpen, run script that sets environment vars, then export this to an .sh file for execution that takes input args
+    cmd = "ACTIVATE_STR=$$(./$(locations @emsdk//:emsdk_bin) activate latest | sed '14q;d') && echo \"export EMSDK_QUIET=1 && $$ACTIVATE_STR && emcc \\$$@\" > $@",
     executable = True,
     tools = ["@//:install_emsdk"],
+    visibility = ["//visibility:public"],
 )
