@@ -20,7 +20,7 @@ genrule(
         "index.js",
         "index.wasm",
     ],
-    cmd = "$(execpaths @//:emcc) **/*.cpp --use-port=sdl2 -o $(RULEDIR)/index.html",
+    cmd = "$(execpaths @//:emcc) **/*.cpp --use-port=sdl2 --use-port=sdl2_ttf -o $(RULEDIR)/index.html",
     executable = False,
     tools = ["@//:emcc"],
     visibility = ["//visibility:public"],

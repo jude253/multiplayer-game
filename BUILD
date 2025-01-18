@@ -119,6 +119,12 @@ genrule(
 
 # Make wrapper around emcc that sets correct env vars allows passing in args
 # bazel run //:emcc
+
+# Issue installing libharfbuzz on MacOS solved by using newer version of python
+# for emscripten python:
+# https://github.com/bazelbuild/rules_python/discussions/1926
+# https://github.com/emscripten-core/emscripten/issues/20986
+# https://rules-python.readthedocs.io/en/latest/toolchains.html#toolchain-usage-in-other-rules
 genrule(
     name = "emcc",
     srcs = [
@@ -129,8 +135,9 @@ genrule(
         "emcc.sh",
     ],
     # activate latest emscritpen, run script that sets environment vars, then export this to an .sh file for execution that takes input args
-    cmd = "ACTIVATE_STR=$$(./$(locations @emsdk//:emsdk_bin) activate latest | sed '14q;d') && echo \"export EMSDK_QUIET=1 && $$ACTIVATE_STR && emcc \\$$@\" > $@",
+    cmd = "BAZEL_PYTHON_PATH=$$(readlink -f $(PYTHON3)) && ACTIVATE_STR=$$(./$(locations @emsdk//:emsdk_bin) activate latest | sed '14q;d') && echo \"export EMSDK_QUIET=1 && $$ACTIVATE_STR && export EMSDK_PYTHON=$$BAZEL_PYTHON_PATH && emcc \\$$@\" > $@",
     executable = True,
+    toolchains = ["@rules_python//python:current_py_toolchain"],
     tools = ["@//:install_emsdk"],
     visibility = ["//visibility:public"],
 )
