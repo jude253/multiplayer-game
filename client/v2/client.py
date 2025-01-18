@@ -28,6 +28,8 @@ import random
 from typing import List
 
 # import basic pygame modules
+from pydantic import BaseModel, ConfigDict
+import pydantic
 import pygame as pg
 from pygame import examples as main_dir
 from importlib.resources import as_file, files
@@ -221,8 +223,9 @@ class Bomb(pg.sprite.Sprite):
 class Score(pg.sprite.Sprite):
     """to keep track of the score."""
 
-    def __init__(self, *groups):
+    def __init__(self, *groups, game=None):
         pg.sprite.Sprite.__init__(self, *groups)
+        self.game = game
         self.font = pg.font.Font(None, 20)
         self.font.set_italic(1)
         self.color = "white"
@@ -232,13 +235,43 @@ class Score(pg.sprite.Sprite):
 
     def update(self, *args, **kwargs):
         """We only update the score in update() when it has changed."""
-        if SCORE != self.lastscore:
-            self.lastscore = SCORE
-            msg = f"Score: {SCORE}"
+        if self.game.score != self.lastscore:
+            self.lastscore = self.game.score
+            msg = f"Score: {self.game.score}"
             self.image = self.font.render(msg, 0, self.color)
 
 
-def main(winstyle=0):
+class Game(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    fullscreen: bool
+    winstyle: int
+    bestdepth: int
+    screen: pg.Surface
+    bgdtile: pg.Surface
+    background: pg.Surface
+    boom_sound: pg.mixer.Sound
+    shoot_sound: pg.mixer.Sound
+    aliens: pg.sprite.Group
+    shots: pg.sprite.Group
+    bombs: pg.sprite.Group
+    all: pg.sprite.RenderUpdates
+    lastalien: pg.sprite.GroupSingle
+    alienreload: int
+    clock: pg.time.Clock
+    score: int
+    player: Player
+
+    def create_new_alien(self):
+        if self.alienreload:
+            self.alienreload = self.alienreload - 1
+        elif not int(random.random() * ALIEN_ODDS):
+            Alien(
+                self.aliens, self.all, self.lastalien
+            )  # note, this 'lives' because it goes into a sprite group
+            self.alienreload = ALIEN_RELOAD
+
+
+def create_game(winstyle=0):
     # Initialize pygame
     if pg.get_sdl_version()[0] == 2:
         pg.mixer.pre_init(44100, 32, 2, 1024)
@@ -297,16 +330,39 @@ def main(winstyle=0):
     clock = pg.time.Clock()
 
     # initialize our starting sprites
-    global SCORE
+    score = SCORE
     player = Player(all)
-    Alien(
-        aliens, all, lastalien
-    )  # note, this 'lives' because it goes into a sprite group
-    if pg.font:
-        all.add(Score(all))
 
+    game = Game(
+        fullscreen=fullscreen,
+        winstyle=winstyle,
+        bestdepth=bestdepth,
+        screen=screen,
+        bgdtile=bgdtile,
+        background=background,
+        boom_sound=boom_sound,
+        shoot_sound=shoot_sound,
+        aliens=aliens,
+        shots=shots,
+        bombs=bombs,
+        all=all,
+        lastalien=lastalien,
+        alienreload=alienreload,
+        clock=clock,
+        score=score,
+        player=player,
+    )
+
+    if pg.font:
+        all.add(Score(all, game=game))
+    return game
+
+
+def main(winstyle=0):
+    game = create_game(winstyle=0)
+    print(game.model_dump(include=["shots"]))
     # Run our main loop whilst the player is alive.
-    while player.alive():
+    while game.player.alive():
         # get input
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -315,82 +371,78 @@ def main(winstyle=0):
                 return
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_f:
-                    if not fullscreen:
+                    if not game.fullscreen:
                         print("Changing to FULLSCREEN")
-                        screen_backup = screen.copy()
-                        screen = pg.display.set_mode(
-                            SCREENRECT.size, winstyle | pg.FULLSCREEN, bestdepth
+                        screen_backup = game.screen.copy()
+                        game.screen = pg.display.set_mode(
+                            SCREENRECT.size, winstyle | pg.FULLSCREEN, game.bestdepth
                         )
-                        screen.blit(screen_backup, (0, 0))
+                        game.screen.blit(screen_backup, (0, 0))
                     else:
                         print("Changing to windowed mode")
-                        screen_backup = screen.copy()
-                        screen = pg.display.set_mode(
-                            SCREENRECT.size, winstyle, bestdepth
+                        screen_backup = game.screen.copy()
+                        game.screen = pg.display.set_mode(
+                            SCREENRECT.size, winstyle, game.bestdepth
                         )
-                        screen.blit(screen_backup, (0, 0))
+                        game.screen.blit(screen_backup, (0, 0))
                     pg.display.flip()
-                    fullscreen = not fullscreen
+                    game.fullscreen = not game.fullscreen
 
         keystate = pg.key.get_pressed()
 
         # clear/erase the last drawn sprites
-        all.clear(screen, background)
+        game.all.clear(game.screen, game.background)
 
         # update all the sprites
-        all.update()
+        game.all.update()
 
         # handle player input
         direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
-        player.move(direction)
+        game.player.move(direction)
         firing = keystate[pg.K_SPACE]
-        if not player.reloading and firing and len(shots) < MAX_SHOTS:
-            Shot(player.gunpos(), shots, all)
-            if pg.mixer and shoot_sound is not None:
-                shoot_sound.play()
-        player.reloading = firing
+        if not game.player.reloading and firing and len(game.shots) < MAX_SHOTS:
+            Shot(game.player.gunpos(), game.shots, game.all)
+            if pg.mixer and game.shoot_sound is not None:
+                game.shoot_sound.play()
+        game.player.reloading = firing
 
         # Create new alien
-        if alienreload:
-            alienreload = alienreload - 1
-        elif not int(random.random() * ALIEN_ODDS):
-            Alien(aliens, all, lastalien)
-            alienreload = ALIEN_RELOAD
+        game.create_new_alien()
 
         # Drop bombs
-        if lastalien and not int(random.random() * BOMB_ODDS):
-            Bomb(lastalien.sprite, all, bombs, all)
+        if game.lastalien and not int(random.random() * BOMB_ODDS):
+            Bomb(game.lastalien.sprite, game.all, game.bombs, game.all)
 
         # Detect collisions between aliens and players.
-        for alien in pg.sprite.spritecollide(player, aliens, 1):
-            if pg.mixer and boom_sound is not None:
-                boom_sound.play()
-            Explosion(alien, all)
-            Explosion(player, all)
-            SCORE = SCORE + 1
-            player.kill()
+        for alien in pg.sprite.spritecollide(game.player, game.aliens, 1):
+            if pg.mixer and game.boom_sound is not None:
+                game.boom_sound.play()
+            Explosion(alien, game.all)
+            Explosion(game.player, game.all)
+            game.score = game.score + 1
+            game.player.kill()
 
         # See if shots hit the aliens.
-        for alien in pg.sprite.groupcollide(aliens, shots, 1, 1).keys():
-            if pg.mixer and boom_sound is not None:
-                boom_sound.play()
-            Explosion(alien, all)
-            SCORE = SCORE + 1
+        for alien in pg.sprite.groupcollide(game.aliens, game.shots, 1, 1).keys():
+            if pg.mixer and game.boom_sound is not None:
+                game.boom_sound.play()
+            Explosion(alien, game.all)
+            game.score = game.score + 1
 
         # See if alien bombs hit the player.
-        for bomb in pg.sprite.spritecollide(player, bombs, 1):
-            if pg.mixer and boom_sound is not None:
-                boom_sound.play()
-            Explosion(player, all)
-            Explosion(bomb, all)
-            player.kill()
+        for bomb in pg.sprite.spritecollide(game.player, game.bombs, 1):
+            if pg.mixer and game.boom_sound is not None:
+                game.boom_sound.play()
+            Explosion(game.player, game.all)
+            Explosion(bomb, game.all)
+            game.player.kill()
 
         # draw the scene
-        dirty = all.draw(screen)
+        dirty = game.all.draw(game.screen)
         pg.display.update(dirty)
 
         # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
-        clock.tick(40)
+        game.clock.tick(40)
 
     if pg.mixer:
         pg.mixer.music.fadeout(1000)
