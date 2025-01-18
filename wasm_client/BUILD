@@ -27,7 +27,7 @@ genrule(
         "index.js",
         "index.wasm",
     ],
-    cmd = "$(execpaths @//:emcc) **/src/**/*.cpp --use-port=sdl2 --use-port=sdl2_ttf --embed-file=$(location :includes)@/include/fonts/SourceCodePro-Regular.ttf -o $(RULEDIR)/index.html",
+    cmd = "$(execpaths @//:emcc) $(locations :cpp_files) --use-port=sdl2 --use-port=sdl2_ttf --embed-file=$(location :includes)@/include/fonts/SourceCodePro-Regular.ttf -o $(RULEDIR)/index.html",
     executable = False,
     tools = ["@//:emcc"],
     visibility = ["//visibility:public"],
