@@ -261,14 +261,18 @@ class Game(BaseModel):
     score: int
     player: Player
 
-    def create_new_alien(self):
+    def create_new_alien_random(self):
         if self.alienreload:
             self.alienreload = self.alienreload - 1
         elif not int(random.random() * ALIEN_ODDS):
-            Alien(
-                self.aliens, self.all, self.lastalien
-            )  # note, this 'lives' because it goes into a sprite group
+            self._create_new_alien()
+
             self.alienreload = ALIEN_RELOAD
+
+    def _create_new_alien(self):
+        Alien(
+            self.aliens, self.all, self.lastalien
+        )  # note, this 'lives' because it goes into a sprite group
 
 
 def create_game(winstyle=0):
@@ -407,7 +411,7 @@ def main(winstyle=0):
         game.player.reloading = firing
 
         # Create new alien
-        game.create_new_alien()
+        game.create_new_alien_random()
 
         # Drop bombs
         if game.lastalien and not int(random.random() * BOMB_ODDS):
