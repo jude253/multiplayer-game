@@ -68,7 +68,6 @@ class BaseNetworkClient(BaseModel):
 
 class NetworkClient(BaseNetworkClient):
     def enque_message_out(self, msg: WS_Message):
-        # print(msg)
         self.out_queue.put_nowait(msg)
 
     def get_message_in(self) -> WS_Message | None:
@@ -155,7 +154,6 @@ class Game(BaseModel):
     def _receive_data(self):
         while self.network_client.has_message_in():
             ws_msg = self.network_client.get_message_in()
-            print(ws_msg)
             if ws_msg.message_type in ("SERVER_POSITION_V2", "CLIENT_POSITION_V2"):
                 self.get_network_sprites(ws_msg.body)
                 continue

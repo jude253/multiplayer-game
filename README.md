@@ -100,6 +100,6 @@ NOTE: Added `bazel run @@//:create_env_file` to automate creating the
 ### Example command to connect to different domain than test domain:
 
 ```bash
-(export DOMAIN="0.0.0.0" && export SECURE=TRUE && bazel run client:main)
+(export DOMAIN="0.0.0.0" && export SECURE=TRUE && bazel run client:v2_client)
 ```
 

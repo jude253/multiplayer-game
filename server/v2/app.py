@@ -27,7 +27,7 @@ import logging
 import uvicorn
 
 from lib.v1.common import PlayerInfo, WS_Message, parse_WS_Message
-from lib.v1.config import TEST_HOST, TEST_PORT, FullPath
+from lib.v2.config import TEST_HOST, TEST_PORT, FullPath
 from lib.data_structures import Point
 from datetime import datetime, timezone
 
@@ -169,7 +169,6 @@ async def websocket_endpoint(websocket: WebSocket, player_session_uuid: str):
 
             while not manager.game_network_client.out_queue.empty():
                 message: WS_Message = await manager.game_network_client.out_queue.get()
-                # print(message)
                 await manager.broadcast(message.model_dump_json())
     except WebSocketDisconnect:
         manager.disconnect(websocket, player_session_uuid)

@@ -52,6 +52,21 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "v2_client",
+    srcs = ["@multiplayer-game//client:lib"],
+    data = [],
+    main = "client/v2/client.py",
+    deps = [
+        "@multiplayer-game//game_assets",
+        "@pypi//pydantic",  # See note above
+        "@pypi//pygame",
+        "@pypi//requests",
+        "@pypi//websocket_client",  # Import name for websocket-client
+        "@pypi//websockets",
+    ],
+)
+
 # similar to pyinstaller client/main.py --workpath pygame-out/client/build --distpath pygame-out/client/dist --specpath pygame-out/client --name client.command --onefile --clean
 # To run command: bazel build //client:release
 run_binary(

@@ -67,6 +67,25 @@ py_console_script_binary(
     ],
 )
 
+# To run: bazel run //server:fastapi_prod_v2
+py_console_script_binary(
+    name = "fastapi_prod_v2",
+    args = [
+        "run",
+        "server/v2/app.py",
+    ],
+    pkg = "@pypi//fastapi",
+    script = "fastapi",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@multiplayer-game//game_assets",
+        "@multiplayer-game//lib",
+        "@multiplayer-game//server:lib",
+        "@pypi//pydantic",
+        "@pypi//websockets",
+    ],
+)
+
 # similar to pyinstaller server/main.py --workpath pygame-out/client/build --distpath pygame-out/client/dist --specpath pygame-out/client --name client.command --onefile --clean
 # To run command: bazel build //server:release
 run_binary(

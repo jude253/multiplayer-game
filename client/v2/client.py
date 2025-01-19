@@ -6,14 +6,26 @@ before running this file.
 Run with:
 ```
 source .venv/bin/activate
-python client/v2/main.py
+python client/v2/client.py
+```
+
+or
+
+```
+bazel run //client:v2_client
+```
+
+or
+
+```
+(export DOMAIN="localhost:8000" && export SECURE=FALSE && bazel run client:v2_client)
 ```
 """
 
 import sys
 from lib.v2.game_simple import *
 from lib.v1.common import WS_Message, parse_WS_Message
-from lib.v1.config import TEST_DOMAIN, FullPath
+from lib.v2.config import TEST_DOMAIN, FullPath
 from websockets import connect
 from websockets.asyncio.client import ClientConnection
 
@@ -39,7 +51,6 @@ async def in_worker(websocket: ClientConnection, in_queue: asyncio.Queue):
         message = await websocket.recv()
         ws_msg: WS_Message = parse_WS_Message(message)
         if ws_msg.message_type == "SERVER_POSITION_V2":
-            print(ws_msg)
             in_queue.put_nowait(ws_msg)
 
 
