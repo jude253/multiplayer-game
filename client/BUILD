@@ -41,7 +41,7 @@ py_binary(
     name = "v1_client",
     srcs = ["@multiplayer-game//client:lib"],
     data = [],
-    main = "client/v1/client.py",
+    main = "client/v1/main_client.py",
     deps = [
         "@multiplayer-game//game_assets",
         "@pypi//pydantic",  # See note above
@@ -80,6 +80,8 @@ run_binary(
         "$(RULEDIR)/pygame-out/dist",
         "--specpath",
         "$(RULEDIR)/pygame-out",
+        "--collect-data",
+        "pygame",
         "--collect-data",
         "game_assets",
         "--clean",
