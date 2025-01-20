@@ -148,7 +148,20 @@ class Game(BaseModel):
                 message_type=message_type,
                 body=body,
             )
-            self.network_client.enque_message_out(ws_message)
+
+            if self.is_server_mode:
+                if len(self.network_sprite_lookup) > 0:
+                    # Only send out messages if a user connected to
+                    # avoid collecting too much memory on server and
+                    # crashing!
+                    self.network_client.enque_message_out(ws_message)
+                else:
+                    # Clear out queue if no one connected to avoid
+                    # crashing server by using up all memory!
+                    while self.network_client.has_message_out():
+                        self.network_client.out_queue.get_nowait()
+            else:
+                self.network_client.enque_message_out(ws_message)
         return
 
     def _receive_data(self):
