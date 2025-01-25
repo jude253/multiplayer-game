@@ -22,6 +22,7 @@ ts_project(
     transpiler = "tsc",
     # Note, the tsconfig attribute defaults to the tsconfig.json file in this directory.
     deps = [
+        ":node_modules/aws-cdk",
         ":node_modules/aws-cdk-lib",
         ":node_modules/constructs",
         ":node_modules/source-map-support",
@@ -36,9 +37,8 @@ js_run_binary(
     srcs = [
         ":ts",
     ],
-    args = ["--dir infra run cdk list"],
+    args = ["exec node_modules/aws-cdk/bin/cdk list"],
+    chdir = package_name(),
     out_dirs = ["cdk.out"],
     tool = "@pnpm",
-    # This is not recommended, but I can't figure out the cdk command without this:
-    use_default_shell_env = True,
 )
