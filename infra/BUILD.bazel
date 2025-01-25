@@ -11,14 +11,15 @@ npm_link_all_packages()
 # Type-checks, and emits output to
 ts_project(
     name = "ts",
+    # Do not include `./node_modules/` in the srcs b/c it leads to
+    # transpiling these and a naming conflict!
+    srcs = glob(["src/**/*.ts"]),
     # json files are included as assets so they will be included at
     # build time.  data only seems to include these at run time. These
     # are needed to run pnpm commands in the js_run_binary step
-    assets = glob(["**/*.json"]),
+    assets = glob(["*.json"]),
     declaration = True,
-    # explicitly given as a regression test for https://github.com/aspect-build/rules_ts/issues/195
     out_dir = ".",
-    # "." is the same as default
     transpiler = "tsc",
     # Note, the tsconfig attribute defaults to the tsconfig.json file in this directory.
     deps = [

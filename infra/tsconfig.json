@@ -1,16 +1,8 @@
 {
     "compilerOptions": {
         "baseUrl": ".",
-        // Path Mapping for the editor to resolve packages within the workspace.
-        // Note that this isn't needed for Bazel, since the package will be "linked" into the
-        // node_modules/@myorg folder.
-        "paths": {},
-        "types": [],
         "target": "ES2018",
         "module": "commonjs",
-        // "lib": [
-        //     "es2018"
-        // ],
         "declaration": true,
         "strict": true,
         "noImplicitAny": true,
@@ -25,12 +17,10 @@
         "inlineSources": true,
         "experimentalDecorators": true,
         "strictPropertyInitialization": false,
-        "typeRoots": [
-            "./node_modules/@types"
-        ]
+        "skipLibCheck": true,
         },
         "exclude": [
             "node_modules",
             "cdk.out"
-        ]
+        ],
 }
