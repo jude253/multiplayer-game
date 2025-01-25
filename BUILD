@@ -1,3 +1,4 @@
+load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@rules_python//python:py_binary.bzl", "py_binary")
 load("@rules_python//python/entry_points:py_console_script_binary.bzl", "py_console_script_binary")
 load("@rules_uv//uv:pip.bzl", "pip_compile")
@@ -140,4 +141,9 @@ genrule(
     toolchains = ["@rules_python//python:current_py_toolchain"],
     tools = ["@//:install_emsdk"],
     visibility = ["//visibility:public"],
+)
+
+# https://github.com/aspect-build/rules_js/blob/main/docs/pnpm.md#rules-overview
+npm_link_all_packages(
+    name = "node_modules",
 )

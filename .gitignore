@@ -1,6 +1,7 @@
 .vscode
 .venv
 .env
+node_modules
 
 #########
 # Bazel #

@@ -1,0 +1,44 @@
+load("@aspect_rules_js//js:defs.bzl", "js_run_binary")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+# load("@aspect_bazel_lib//lib:diff_test.bzl", "diff_test")
+# load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+npm_link_all_packages()
+
+# Type-checks, and emits output to
+ts_project(
+    name = "ts",
+    # json files are included as assets so they will be included at
+    # build time.  data only seems to include these at run time. These
+    # are needed to run pnpm commands in the js_run_binary step
+    assets = glob(["**/*.json"]),
+    declaration = True,
+    # explicitly given as a regression test for https://github.com/aspect-build/rules_ts/issues/195
+    out_dir = ".",
+    # "." is the same as default
+    transpiler = "tsc",
+    # Note, the tsconfig attribute defaults to the tsconfig.json file in this directory.
+    deps = [
+        ":node_modules/aws-cdk-lib",
+        ":node_modules/constructs",
+        ":node_modules/source-map-support",
+        ":node_modules/ts-node",
+    ],
+)
+
+# Might want to specify cdk app command in this command to ensure using
+# the right `node`.  Not sure which one is being used in the cdk.json.
+js_run_binary(
+    name = "cdk_list",
+    srcs = [
+        ":ts",
+    ],
+    args = ["--dir infra run cdk list"],
+    out_dirs = ["cdk.out"],
+    tool = "@pnpm",
+    # This is not recommended, but I can't figure out the cdk command without this:
+    use_default_shell_env = True,
+)

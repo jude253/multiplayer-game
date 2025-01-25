@@ -1,2 +1,9 @@
 # Make Bazel 7 use bzlmod by default
 common --enable_bzlmod
+
+# TypeScript's type-checking exposes a flag `--skipLibCheck`:
+# https://www.typescriptlang.org/tsconfig#skipLibCheck
+common --@aspect_rules_ts//ts:skipLibCheck=always
+
+# https://github.com/aspect-build/rules_ts/blob/main/docs/transpiler.md#typescript-tsc
+# common --@aspect_rules_ts//ts:default_to_tsc_transpiler
